@@ -398,11 +398,44 @@ function M.inspect()
 
   -- Display
   table.insert(info, "")
-  table.insert(info, "─────────────────────────────────────────")
+  table.insert(info, "Press 'q' or <Esc> to close")
 
-  -- Use vim.notify or print
-  local result = table.concat(info, "\n")
-  print(result)
+  -- フローティングウィンドウで表示
+  local width = 50
+  local height = #info
+  local max_height = math.floor(vim.o.lines * 0.8)
+  if height > max_height then
+    height = max_height
+  end
+
+  local col = math.floor((vim.o.columns - width) / 2)
+  local row = math.floor((vim.o.lines - height) / 2)
+
+  local buf = vim.api.nvim_create_buf(false, true)
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, info)
+  vim.bo[buf].modifiable = false
+  vim.bo[buf].bufhidden = "wipe"
+
+  local win = vim.api.nvim_open_win(buf, true, {
+    relative = "editor",
+    width = width,
+    height = height,
+    col = col,
+    row = row,
+    style = "minimal",
+    border = "rounded",
+    title = " Inspector ",
+    title_pos = "center",
+  })
+
+  -- キーマップで閉じる
+  local close = function()
+    if vim.api.nvim_win_is_valid(win) then
+      vim.api.nvim_win_close(win, true)
+    end
+  end
+  vim.keymap.set("n", "q", close, { buffer = buf, nowait = true })
+  vim.keymap.set("n", "<Esc>", close, { buffer = buf, nowait = true })
 end
 
 return M
