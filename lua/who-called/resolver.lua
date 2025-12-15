@@ -23,6 +23,7 @@ local cache_initialized = false
 
 -- filetype からプラグイン名へのマッピング（スタックトレースが取れない場合のフォールバック）
 local filetype_to_plugin = {
+  ["pile"] = "pile.nvim",
   ["oil"] = "oil.nvim",
   ["TelescopePrompt"] = "telescope.nvim",
   ["TelescopeResults"] = "telescope.nvim",

@@ -3,8 +3,23 @@
 local M = {}
 local resolver = require("who-called.resolver")
 
+-- サイングループからプラグインを推測
+local signgroup_to_plugin = {
+  ["gitsigns_vimfn_signs_"] = "gitsigns.nvim",
+  ["gitsigns_extmark_signs_"] = "gitsigns.nvim",
+  ["GitGutter"] = "vim-gitgutter",
+  ["DiagnosticSign"] = "LSP Diagnostic (native)",
+  ["DapBreakpoint"] = "nvim-dap",
+  ["DapStopped"] = "nvim-dap",
+  ["neotest"] = "neotest",
+  ["coverage"] = "nvim-coverage",
+  ["todo-signs"] = "todo-comments.nvim",
+}
+
 -- filetype からプラグインを推測するマッピング（resolver と共有）
 local filetype_hints = {
+  -- pile.nvim
+  ["pile"] = "pile.nvim",
   -- File explorers
   ["oil"] = "oil.nvim",
   ["neo-tree"] = "neo-tree.nvim",
@@ -194,6 +209,42 @@ local function guess_tabline_plugin(tabline)
   return "custom"
 end
 
+-- サインカラムの情報を取得
+local function get_sign_info(bufnr)
+  local signs = {}
+  local placed = vim.fn.sign_getplaced(bufnr, { group = "*" })
+
+  if placed and placed[1] and placed[1].signs then
+    for _, sign in ipairs(placed[1].signs) do
+      local group = sign.group or "default"
+      local name = sign.name or "unknown"
+
+      -- グループ名からプラグインを推測
+      local plugin = nil
+      for pattern, plug in pairs(signgroup_to_plugin) do
+        if group:match(pattern) or name:match(pattern) then
+          plugin = plug
+          break
+        end
+      end
+
+      if not signs[group] then
+        signs[group] = {
+          plugin = plugin,
+          count = 0,
+          names = {},
+        }
+      end
+      signs[group].count = signs[group].count + 1
+      if not vim.tbl_contains(signs[group].names, name) then
+        table.insert(signs[group].names, name)
+      end
+    end
+  end
+
+  return signs
+end
+
 -- winbar のプラグインをロード状況から推測
 local function guess_winbar_from_loaded()
   local loaded = get_loaded_plugins()
@@ -302,6 +353,23 @@ function M.inspect()
     table.insert(info, string.format("   Content: %s", display_winbar))
   else
     table.insert(info, "   Set: no")
+  end
+
+  table.insert(info, "")
+
+  -- Sign column
+  local sign_info = get_sign_info(buf)
+  table.insert(info, "🔖 Sign Column:")
+  if next(sign_info) then
+    for group, data in pairs(sign_info) do
+      local plugin_str = data.plugin and string.format(" → %s", data.plugin) or ""
+      table.insert(info, string.format("   [%s] %d signs%s", group, data.count, plugin_str))
+      if #data.names > 0 and #data.names <= 3 then
+        table.insert(info, string.format("      Names: %s", table.concat(data.names, ", ")))
+      end
+    end
+  else
+    table.insert(info, "   No signs in this buffer")
   end
 
   table.insert(info, "")
