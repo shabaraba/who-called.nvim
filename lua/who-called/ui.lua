@@ -23,12 +23,19 @@ function M.show_history()
   if #entries == 0 then
     table.insert(lines, "No entries recorded yet.")
   else
-    for i, entry in ipairs(entries) do
-      local type_icon = {
+    -- 時間降順（新しい順）でソート
+    local sorted_entries = {}
+    for i = #entries, 1, -1 do
+      table.insert(sorted_entries, entries[i])
+    end
+
+    for i, entry in ipairs(sorted_entries) do
+      local type_icons = {
         notify = "🔔",
         window = "🪟",
         diagnostic = "❌",
-      }[entry.type] or "?"
+      }
+      local type_icon = type_icons[entry.type] or "?"
 
       table.insert(
         lines,
