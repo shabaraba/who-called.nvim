@@ -9,6 +9,7 @@ local defaults = {
   track_notify = true,
   track_windows = true,
   track_diagnostics = true,
+  track_buffers = true,
 }
 
 local config = vim.tbl_extend("force", {}, defaults)

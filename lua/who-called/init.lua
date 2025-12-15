@@ -7,6 +7,7 @@ local history = require("who-called.history")
 local notify_hook = require("who-called.hooks.notify")
 local window_hook = require("who-called.hooks.window")
 local diagnostic_hook = require("who-called.hooks.diagnostic")
+local buffer_hook = require("who-called.hooks.buffer")
 local ui = require("who-called.ui")
 
 local enabled = false
@@ -37,6 +38,7 @@ function M.enable()
   notify_hook.enable()
   window_hook.enable()
   diagnostic_hook.enable()
+  buffer_hook.enable()
 
   enabled = true
   vim.g.who_called_enabled = true
@@ -51,6 +53,7 @@ function M.disable()
   notify_hook.disable()
   window_hook.disable()
   diagnostic_hook.disable()
+  buffer_hook.disable()
 
   enabled = false
   vim.g.who_called_enabled = false
@@ -78,14 +81,16 @@ function M.stats()
   local notify_count = #history.get_by_type("notify")
   local window_count = #history.get_by_type("window")
   local diagnostic_count = #history.get_by_type("diagnostic")
+  local buffer_count = #history.get_by_type("buffer")
 
   vim.notify(
     string.format(
-      "who-called stats: total=%d, notify=%d, window=%d, diagnostic=%d",
+      "who-called stats: total=%d, notify=%d, window=%d, diagnostic=%d, buffer=%d",
       total,
       notify_count,
       window_count,
-      diagnostic_count
+      diagnostic_count,
+      buffer_count
     ),
     vim.log.levels.INFO
   )

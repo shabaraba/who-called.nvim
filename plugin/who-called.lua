@@ -34,3 +34,7 @@ vim.api.nvim_create_user_command("WhoCalledToggle", function()
     vim.notify("who-called enabled", vim.log.levels.INFO)
   end
 end, {})
+
+vim.api.nvim_create_user_command("WhoCalledInspect", function()
+  require("who-called.inspector").inspect()
+end, {})
