@@ -74,33 +74,65 @@ local function guess_winbar_plugin(winbar)
     return nil
   end
 
-  -- 一般的な winbar プラグインのパターン
-  if winbar:match("navic") or winbar:match("NavicIcons") then
-    return "nvim-navic"
+  -- 一般的な winbar プラグインのパターン（highlight group名で判定）
+  if winbar:match("NavicIcons") or winbar:match("Navic") then
+    return "nvim-navic (or barbecue.nvim)"
   end
-  if winbar:match("barbecue") then
+  if winbar:match("barbecue") or winbar:match("Barbecue") then
     return "barbecue.nvim"
   end
-  if winbar:match("dropbar") then
+  if winbar:match("DropBar") or winbar:match("dropbar") then
     return "dropbar.nvim"
   end
-  if winbar:match("lspsaga") or winbar:match("Lspsaga") then
+  if winbar:match("LspsagaWinbar") or winbar:match("Lspsaga") then
     return "lspsaga.nvim"
   end
-  if winbar:match("aerial") then
+  if winbar:match("Aerial") or winbar:match("aerial") then
     return "aerial.nvim"
   end
-  if winbar:match("%%#") then
-    return "custom (uses highlight groups)"
+  -- breadcrumb-like patterns (icons with separators)
+  if winbar:match("") or winbar:match("") or winbar:match("") then
+    return "breadcrumb plugin (navic/barbecue/dropbar)"
+  end
+  -- incline.nvim pattern
+  if winbar:match("Incline") then
+    return "incline.nvim"
   end
 
-  return "unknown"
+  return "custom plugin"
+end
+
+-- ロードされているプラグインをチェック
+local function get_loaded_plugins()
+  local loaded = {}
+  local ok, lazy = pcall(require, "lazy")
+  if ok then
+    local plugins = lazy.plugins()
+    for _, plugin in ipairs(plugins) do
+      if plugin._.loaded then
+        loaded[plugin.name] = true
+      end
+    end
+  end
+  return loaded
 end
 
 -- statusline 設定からプラグインを推測
 local function guess_statusline_plugin(statusline)
+  -- まずロードされているプラグインから推測
+  local loaded = get_loaded_plugins()
+  if loaded["lualine.nvim"] then
+    return "lualine.nvim"
+  end
+  if loaded["heirline.nvim"] then
+    return "heirline.nvim"
+  end
+  if loaded["feline.nvim"] then
+    return "feline.nvim"
+  end
+
   if not statusline or statusline == "" then
-    return nil
+    return "native"
   end
 
   if statusline:match("lualine") then
@@ -122,19 +154,34 @@ local function guess_statusline_plugin(statusline)
     return "heirline.nvim"
   end
 
-  return "custom or native"
+  return "custom"
 end
 
 -- tabline 設定からプラグインを推測
 local function guess_tabline_plugin(tabline)
+  -- ロードされているプラグインから推測
+  local loaded = get_loaded_plugins()
+  if loaded["bufferline.nvim"] then
+    return "bufferline.nvim"
+  end
+  if loaded["barbar.nvim"] then
+    return "barbar.nvim"
+  end
+  if loaded["tabby.nvim"] then
+    return "tabby.nvim"
+  end
+  if loaded["nvim-cokeline"] then
+    return "nvim-cokeline"
+  end
+
   if not tabline or tabline == "" then
     return nil
   end
 
-  if tabline:match("bufferline") then
+  if tabline:match("bufferline") or tabline:match("Bufferline") then
     return "bufferline.nvim"
   end
-  if tabline:match("barbar") then
+  if tabline:match("barbar") or tabline:match("Barbar") then
     return "barbar.nvim"
   end
   if tabline:match("tabby") then
@@ -144,7 +191,28 @@ local function guess_tabline_plugin(tabline)
     return "nvim-cokeline"
   end
 
-  return "custom or native"
+  return "custom"
+end
+
+-- winbar のプラグインをロード状況から推測
+local function guess_winbar_from_loaded()
+  local loaded = get_loaded_plugins()
+  if loaded["barbecue.nvim"] then
+    return "barbecue.nvim"
+  end
+  if loaded["dropbar.nvim"] then
+    return "dropbar.nvim"
+  end
+  if loaded["nvim-navic"] then
+    return "nvim-navic"
+  end
+  if loaded["incline.nvim"] then
+    return "incline.nvim"
+  end
+  if loaded["lspsaga.nvim"] then
+    return "lspsaga.nvim (winbar feature)"
+  end
+  return nil
 end
 
 -- 現在のウィンドウ/バッファを調査
@@ -216,7 +284,14 @@ function M.inspect()
   local winbar = vim.wo[win].winbar
   table.insert(info, "🍞 Winbar (breadcrumb):")
   if winbar and winbar ~= "" then
+    -- まずパターンマッチで推測、ダメならロード済みプラグインから推測
     local winbar_plugin = guess_winbar_plugin(winbar)
+    if winbar_plugin == "custom plugin" then
+      local loaded_plugin = guess_winbar_from_loaded()
+      if loaded_plugin then
+        winbar_plugin = loaded_plugin
+      end
+    end
     table.insert(info, string.format("   Set: yes"))
     table.insert(info, string.format("   → Plugin: %s", winbar_plugin or "unknown"))
     -- Show truncated winbar content
