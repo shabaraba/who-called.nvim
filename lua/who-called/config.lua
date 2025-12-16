@@ -10,6 +10,8 @@ local defaults = {
   track_windows = true,
   track_diagnostics = true,
   track_buffers = true,
+  hover = false,
+  live_inspector = false,
 }
 
 local config = vim.tbl_extend("force", {}, defaults)

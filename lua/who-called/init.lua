@@ -28,6 +28,16 @@ function M.setup(opts)
   if vim.g.who_called_enabled then
     M.enable()
   end
+
+  -- hover 自動起動
+  if config.get("hover") then
+    require("who-called.hover").start()
+  end
+
+  -- live_inspector 自動起動
+  if config.get("live_inspector") then
+    require("who-called.inspector-live").start()
+  end
 end
 
 -- フックを有効化
