@@ -1,0 +1,11 @@
+# Claude Code / MCP
+.mcp.json
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Neovim
+.netrwhist
