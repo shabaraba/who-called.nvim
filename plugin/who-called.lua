@@ -43,15 +43,25 @@ vim.api.nvim_create_user_command("WhoCalledInspect", function()
 end, {})
 
 vim.api.nvim_create_user_command("WhoCalledLive", function()
-  require("who-called.inspector-live").toggle()
+  local live = require("who-called.inspector-live")
+  local hover = require("who-called.hover")
+  if live.is_running() then
+    live.stop()
+    hover.stop()
+  else
+    live.start()
+    hover.start()
+  end
 end, {})
 
 vim.api.nvim_create_user_command("WhoCalledLiveStart", function()
   require("who-called.inspector-live").start()
+  require("who-called.hover").start()
 end, {})
 
 vim.api.nvim_create_user_command("WhoCalledLiveStop", function()
   require("who-called.inspector-live").stop()
+  require("who-called.hover").stop()
 end, {})
 
 vim.api.nvim_create_user_command("WhoCalledHover", function()
