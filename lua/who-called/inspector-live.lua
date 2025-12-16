@@ -98,6 +98,98 @@ local function get_current_info()
   }
 end
 
+-- namespace ID からプラグイン名を取得（汎用）
+local function namespace_to_plugin(ns_id)
+  local namespaces = vim.api.nvim_get_namespaces()
+  for name, id in pairs(namespaces) do
+    if id == ns_id then
+      return name
+    end
+  end
+  return nil
+end
+
+-- Sign からプラグインを推測（sign_getplaced + extmarks）
+local function get_sign_plugins(buf)
+  local plugins = {}
+  local seen = {}
+
+  -- 1. 従来の sign_getplaced
+  local ok, placed = pcall(vim.fn.sign_getplaced, buf)
+  if ok and placed and placed[1] and placed[1].signs then
+    for _, sign in ipairs(placed[1].signs) do
+      local group = sign.group or ""
+      if group ~= "" and not seen[group] then
+        seen[group] = true
+        table.insert(plugins, group)
+      end
+    end
+  end
+
+  -- 2. extmarks ベースのサイン（gitsigns 等）
+  local ok2, extmarks = pcall(vim.api.nvim_buf_get_extmarks, buf, -1, 0, -1, { details = true })
+  if ok2 and extmarks then
+    for _, mark in ipairs(extmarks) do
+      local details = mark[4]
+      if details and (details.sign_text or details.sign_hl_group) then
+        local plugin = nil
+        -- namespace_id から汎用的に解決
+        if details.ns_id then
+          plugin = namespace_to_plugin(details.ns_id)
+        end
+        -- namespace で見つからなければ hl_group から推測
+        if not plugin and details.sign_hl_group then
+          local hl = details.sign_hl_group
+          local prefix = hl:match("^(%u%l+%u?%l*)")
+          if prefix then
+            plugin = prefix .. " (from hl)"
+          end
+        end
+        if plugin and not seen[plugin] then
+          seen[plugin] = true
+          table.insert(plugins, plugin)
+        end
+      end
+    end
+  end
+
+  return plugins
+end
+
+-- Winbar からプラグインを推測
+local function get_winbar_plugin(win)
+  local winbar = vim.wo[win].winbar
+  if not winbar or winbar == "" then
+    return nil
+  end
+
+  -- フックで追跡された情報
+  local ok, tracked = pcall(vim.api.nvim_win_get_var, win, "who_called_winbar")
+  if ok and tracked then
+    return tracked .. " ✓"
+  end
+
+  -- ハイライトグループから推測
+  local ok2, option_hook = pcall(require, "who-called.hooks.option")
+  if ok2 then
+    local from_hl = option_hook.resolve_from_highlight_groups(winbar)
+    if from_hl then
+      return from_hl
+    end
+  end
+
+  -- パターンマッチ
+  if winbar:match("[Ss]aga") then
+    return "lspsaga.nvim"
+  elseif winbar:match("[Nn]avic") then
+    return "nvim-navic"
+  elseif winbar:match("[Bb]arbecue") then
+    return "barbecue.nvim"
+  end
+
+  return "(winbar)"
+end
+
 -- 表示内容を生成
 local function format_info(info)
   if not info then
@@ -121,6 +213,34 @@ local function format_info(info)
       short_name = short_name:sub(1, 22) .. "..."
     end
     table.insert(lines, string.format(" %s", short_name))
+  end
+
+  -- レンダリング情報
+  table.insert(lines, "")
+  table.insert(lines, " ── Rendering ──")
+
+  -- Winbar
+  local winbar_plugin = get_winbar_plugin(info.win)
+  if winbar_plugin then
+    table.insert(lines, string.format(" 🍞 %s", winbar_plugin))
+  end
+
+  -- Signs
+  local sign_plugins = get_sign_plugins(info.buf)
+  for _, sp in ipairs(sign_plugins) do
+    table.insert(lines, string.format(" 📍 %s", sp))
+  end
+
+  -- LSP
+  local clients = vim.lsp.get_clients({ bufnr = info.buf })
+  for _, client in ipairs(clients) do
+    table.insert(lines, string.format(" 💡 %s", client.name))
+  end
+
+  -- Treesitter
+  local ok, parser = pcall(vim.treesitter.get_parser, info.buf)
+  if ok and parser then
+    table.insert(lines, string.format(" 🌳 treesitter (%s)", parser:lang()))
   end
 
   -- フローティングウィンドウ情報

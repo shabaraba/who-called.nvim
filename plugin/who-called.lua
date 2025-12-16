@@ -53,3 +53,15 @@ end, {})
 vim.api.nvim_create_user_command("WhoCalledLiveStop", function()
   require("who-called.inspector-live").stop()
 end, {})
+
+vim.api.nvim_create_user_command("WhoCalledHover", function()
+  require("who-called.hover").toggle()
+end, {})
+
+vim.api.nvim_create_user_command("WhoCalledHoverStart", function()
+  require("who-called.hover").start()
+end, {})
+
+vim.api.nvim_create_user_command("WhoCalledHoverStop", function()
+  require("who-called.hover").stop()
+end, {})
