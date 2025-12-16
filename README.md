@@ -20,6 +20,10 @@ A Neovim debugging plugin that identifies which plugin is responsible for UI ele
 - **Hover Mode**: Mouse hover tooltips showing plugin information for UI elements
 - **History Viewer**: Browse all tracked events with `:WhoCalledHistory`
 
+## demo
+
+https://github.com/user-attachments/assets/d2deb355-40de-459f-85f0-2872c1bf7283
+
 ## Requirements
 
 - Neovim >= 0.9.0
