@@ -36,5 +36,20 @@ vim.api.nvim_create_user_command("WhoCalledToggle", function()
 end, {})
 
 vim.api.nvim_create_user_command("WhoCalledInspect", function()
-  require("who-called.inspector").inspect()
+  -- コマンド実行時のウィンドウ/バッファを記録してから Inspector を開く
+  local target_win = vim.api.nvim_get_current_win()
+  local target_buf = vim.api.nvim_get_current_buf()
+  require("who-called.inspector").inspect(target_win, target_buf)
+end, {})
+
+vim.api.nvim_create_user_command("WhoCalledLive", function()
+  require("who-called.inspector-live").toggle()
+end, {})
+
+vim.api.nvim_create_user_command("WhoCalledLiveStart", function()
+  require("who-called.inspector-live").start()
+end, {})
+
+vim.api.nvim_create_user_command("WhoCalledLiveStop", function()
+  require("who-called.inspector-live").stop()
 end, {})

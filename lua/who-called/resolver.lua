@@ -21,30 +21,6 @@ local utility_plugins = {
 local plugin_cache = {}
 local cache_initialized = false
 
--- filetype からプラグイン名へのマッピング（スタックトレースが取れない場合のフォールバック）
-local filetype_to_plugin = {
-  ["pile"] = "pile.nvim",
-  ["oil"] = "oil.nvim",
-  ["TelescopePrompt"] = "telescope.nvim",
-  ["TelescopeResults"] = "telescope.nvim",
-  ["neo-tree"] = "neo-tree.nvim",
-  ["NvimTree"] = "nvim-tree.lua",
-  ["lazy"] = "lazy.nvim",
-  ["mason"] = "mason.nvim",
-  ["lspinfo"] = "nvim-lspconfig",
-  ["toggleterm"] = "toggleterm.nvim",
-  ["trouble"] = "trouble.nvim",
-  ["Outline"] = "outline.nvim",
-  ["aerial"] = "aerial.nvim",
-  ["DressingInput"] = "dressing.nvim",
-  ["DressingSelect"] = "dressing.nvim",
-  ["noice"] = "noice.nvim",
-  ["notify"] = "nvim-notify",
-  ["Navbuddy"] = "nvim-navbuddy",
-  ["lspsagaoutline"] = "lspsaga.nvim",
-  ["saga"] = "lspsaga.nvim",
-}
-
 -- キャッシュを初期化
 local function init_cache()
   if cache_initialized then
@@ -104,31 +80,35 @@ function M.path_to_plugin(path)
   return nil
 end
 
--- バッファの filetype からプラグイン名を推測
+-- バッファ名スキームからプラグイン名を推測（フック追跡のフォールバック）
 function M.resolve_from_buffer(bufnr)
   if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
     return nil
   end
 
-  local ft = vim.bo[bufnr].filetype
-  if ft and filetype_to_plugin[ft] then
-    return filetype_to_plugin[ft]
+  local bufname = vim.api.nvim_buf_get_name(bufnr)
+  if not bufname or bufname == "" then
+    return nil
   end
 
-  -- バッファ名からも推測を試みる
-  local bufname = vim.api.nvim_buf_get_name(bufnr)
-  if bufname then
-    -- oil:// スキームをチェック
-    if bufname:match("^oil://") then
-      return "oil.nvim"
-    end
-    -- その他のスキーム
-    if bufname:match("^neo%-tree://") then
-      return "neo-tree.nvim"
-    end
-    if bufname:match("^NvimTree_") then
-      return "nvim-tree.lua"
-    end
+  -- バッファ名スキームで推測（これらは確実に特定できる）
+  if bufname:match("^oil://") then
+    return "oil.nvim"
+  end
+  if bufname:match("^neo%-tree://") then
+    return "neo-tree.nvim"
+  end
+  if bufname:match("^NvimTree_") then
+    return "nvim-tree.lua"
+  end
+  if bufname:match("^fugitive://") then
+    return "vim-fugitive"
+  end
+  if bufname:match("^gitsigns://") then
+    return "gitsigns.nvim"
+  end
+  if bufname:match("^diffview://") then
+    return "diffview.nvim"
   end
 
   return nil

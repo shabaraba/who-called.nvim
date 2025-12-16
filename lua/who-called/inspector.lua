@@ -1,7 +1,6 @@
 -- Inspector: 現在のウィンドウ/バッファの詳細情報を表示
 
 local M = {}
-local resolver = require("who-called.resolver")
 
 -- サイングループからプラグインを推測
 local signgroup_to_plugin = {
@@ -14,73 +13,6 @@ local signgroup_to_plugin = {
   ["neotest"] = "neotest",
   ["coverage"] = "nvim-coverage",
   ["todo-signs"] = "todo-comments.nvim",
-}
-
--- filetype からプラグインを推測するマッピング（resolver と共有）
-local filetype_hints = {
-  -- pile.nvim
-  ["pile"] = "pile.nvim",
-  -- File explorers
-  ["oil"] = "oil.nvim",
-  ["neo-tree"] = "neo-tree.nvim",
-  ["NvimTree"] = "nvim-tree.lua",
-  ["dirvish"] = "vim-dirvish",
-  ["fern"] = "fern.vim",
-  -- Telescope
-  ["TelescopePrompt"] = "telescope.nvim",
-  ["TelescopeResults"] = "telescope.nvim",
-  -- Fuzzy finders
-  ["fzf"] = "fzf.vim or fzf-lua",
-  -- Git
-  ["fugitive"] = "vim-fugitive",
-  ["gitcommit"] = "git (native)",
-  ["NeogitStatus"] = "neogit",
-  ["DiffviewFiles"] = "diffview.nvim",
-  -- LSP
-  ["lspinfo"] = "nvim-lspconfig",
-  ["lspsagaoutline"] = "lspsaga.nvim",
-  ["lspsagafinder"] = "lspsaga.nvim",
-  ["saga_codeaction"] = "lspsaga.nvim",
-  ["Outline"] = "outline.nvim or symbols-outline.nvim",
-  ["aerial"] = "aerial.nvim",
-  -- DAP
-  ["dapui_scopes"] = "nvim-dap-ui",
-  ["dapui_breakpoints"] = "nvim-dap-ui",
-  ["dapui_stacks"] = "nvim-dap-ui",
-  ["dapui_watches"] = "nvim-dap-ui",
-  ["dap-repl"] = "nvim-dap",
-  -- Package managers
-  ["lazy"] = "lazy.nvim",
-  ["mason"] = "mason.nvim",
-  ["packer"] = "packer.nvim",
-  -- Terminal
-  ["toggleterm"] = "toggleterm.nvim",
-  ["terminal"] = "native terminal",
-  -- Diagnostics
-  ["trouble"] = "trouble.nvim",
-  ["qf"] = "quickfix (native)",
-  -- Notifications
-  ["notify"] = "nvim-notify",
-  ["noice"] = "noice.nvim",
-  -- Completion
-  ["cmp_docs"] = "nvim-cmp",
-  ["cmp_menu"] = "nvim-cmp",
-  -- Help
-  ["help"] = "native help",
-  ["man"] = "native man",
-  -- Markdown preview
-  ["markdown"] = "native or plugin",
-  ["Glance"] = "glance.nvim",
-  -- Testing
-  ["neotest-summary"] = "neotest",
-  ["neotest-output"] = "neotest",
-  -- Other
-  ["alpha"] = "alpha-nvim",
-  ["dashboard"] = "dashboard-nvim",
-  ["startify"] = "vim-startify",
-  ["Navbuddy"] = "nvim-navbuddy",
-  ["undotree"] = "undotree",
-  ["spectre_panel"] = "nvim-spectre",
 }
 
 -- winbar 設定からプラグインを推測
@@ -267,9 +199,10 @@ local function guess_winbar_from_loaded()
 end
 
 -- 現在のウィンドウ/バッファを調査
-function M.inspect()
-  local win = vim.api.nvim_get_current_win()
-  local buf = vim.api.nvim_get_current_buf()
+function M.inspect(target_win, target_buf)
+  -- 引数がなければ現在のウィンドウ/バッファを使用
+  local win = target_win or vim.api.nvim_get_current_win()
+  local buf = target_buf or vim.api.nvim_get_current_buf()
 
   local info = {
     "╭─────────────────────────────────────────╮",
@@ -288,18 +221,6 @@ function M.inspect()
   table.insert(info, string.format("   Name: %s", bufname ~= "" and bufname or "(empty)"))
   table.insert(info, string.format("   Filetype: %s", ft ~= "" and ft or "(none)"))
   table.insert(info, string.format("   Buftype: %s", buftype ~= "" and buftype or "(normal)"))
-
-  -- Plugin guess from filetype
-  local ft_plugin = filetype_hints[ft]
-  if ft_plugin then
-    table.insert(info, string.format("   → Plugin (from ft): %s", ft_plugin))
-  end
-
-  -- Plugin guess from buffer name scheme
-  local bufname_plugin = resolver.resolve_from_buffer(buf)
-  if bufname_plugin and bufname_plugin ~= ft_plugin then
-    table.insert(info, string.format("   → Plugin (from name): %s", bufname_plugin))
-  end
 
   table.insert(info, "")
 
@@ -323,10 +244,16 @@ function M.inspect()
     end
   end
 
-  -- who_called_plugin variable
-  local ok, plugin_var = pcall(vim.api.nvim_win_get_var, win, "who_called_plugin")
-  if ok and plugin_var then
-    table.insert(info, string.format("   → Plugin (tracked): %s", plugin_var))
+  -- who_called_plugin variable (window)
+  local ok, win_plugin = pcall(vim.api.nvim_win_get_var, win, "who_called_plugin")
+  if ok and win_plugin then
+    table.insert(info, string.format("   → Plugin (win tracked): %s", win_plugin))
+  end
+
+  -- who_called_plugin variable (buffer)
+  local ok2, buf_plugin = pcall(vim.api.nvim_buf_get_var, buf, "who_called_plugin")
+  if ok2 and buf_plugin then
+    table.insert(info, string.format("   → Plugin (buf tracked): %s", buf_plugin))
   end
 
   table.insert(info, "")

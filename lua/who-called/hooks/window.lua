@@ -50,17 +50,24 @@ function M.enable()
         local plugin_label = string.format("[%s] ", plugin_name)
 
         if config_opts.title then
-          -- 既存の title に [plugin-name] を追加
+          -- 既存の title に [plugin-name] を追加（重複チェック付き）
           local title = config_opts.title
+          local pattern = "^%[" .. plugin_name .. "%]"
 
           if type(title) == "string" then
-            config_opts.title = plugin_label .. title
+            if not title:match(pattern) then
+              config_opts.title = plugin_label .. title
+            end
           elseif type(title) == "table" and #title > 0 then
             local first_item = title[1]
             if type(first_item) == "string" then
-              title[1] = plugin_label .. first_item
+              if not first_item:match(pattern) then
+                title[1] = plugin_label .. first_item
+              end
             elseif type(first_item) == "table" and first_item[1] then
-              first_item[1] = plugin_label .. first_item[1]
+              if not first_item[1]:match(pattern) then
+                first_item[1] = plugin_label .. first_item[1]
+              end
             end
           end
         else
