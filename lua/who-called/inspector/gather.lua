@@ -4,7 +4,6 @@ local M = {}
 
 local sign = require("who-called.utils.sign")
 local winbar = require("who-called.utils.winbar")
-local loaded_plugins = require("who-called.utils.loaded-plugins")
 
 function M.get_buffer_info(buf)
   local bufname = vim.api.nvim_buf_get_name(buf)
@@ -59,43 +58,52 @@ function M.get_winbar_plugin(win)
   return winbar.get_plugin(win)
 end
 
-function M.guess_statusline_plugin(statusline)
-  local loaded = loaded_plugins.get_all()
-  if loaded["lualine.nvim"] then return "lualine.nvim" end
-  if loaded["heirline.nvim"] then return "heirline.nvim" end
-  if loaded["feline.nvim"] then return "feline.nvim" end
-
+function M.get_statusline_plugin(win)
+  local statusline = vim.o.statusline
   if not statusline or statusline == "" then
     return "native"
   end
 
-  if statusline:match("lualine") then return "lualine.nvim" end
-  if statusline:match("airline") then return "vim-airline" end
-  if statusline:match("lightline") then return "lightline.vim" end
-  if statusline:match("galaxyline") then return "galaxyline.nvim" end
-  if statusline:match("feline") then return "feline.nvim" end
-  if statusline:match("heirline") then return "heirline.nvim" end
+  -- 1. フックで追跡された情報を確認
+  local ok, tracked = pcall(vim.api.nvim_win_get_var, win, "who_called_statusline")
+  if ok and tracked then
+    return tracked .. " (tracked)"
+  end
 
-  return "custom"
+  -- 2. ハイライトグループ名から汎用的に推測
+  local ok2, option_hook = pcall(require, "who-called.hooks.option")
+  if ok2 and option_hook.resolve_from_highlight_groups then
+    local from_hl = option_hook.resolve_from_highlight_groups(statusline)
+    if from_hl then
+      return from_hl
+    end
+  end
+
+  return nil
 end
 
-function M.guess_tabline_plugin(tabline)
-  local loaded = loaded_plugins.get_all()
-  if loaded["bufferline.nvim"] then return "bufferline.nvim" end
-  if loaded["barbar.nvim"] then return "barbar.nvim" end
-  if loaded["tabby.nvim"] then return "tabby.nvim" end
-  if loaded["nvim-cokeline"] then return "nvim-cokeline" end
-
+function M.get_tabline_plugin()
+  local tabline = vim.o.tabline
   if not tabline or tabline == "" then
     return nil
   end
 
-  if tabline:match("bufferline") or tabline:match("Bufferline") then return "bufferline.nvim" end
-  if tabline:match("barbar") or tabline:match("Barbar") then return "barbar.nvim" end
-  if tabline:match("tabby") then return "tabby.nvim" end
-  if tabline:match("cokeline") then return "nvim-cokeline" end
+  -- 1. フックで追跡された情報を確認（グローバル変数）
+  local tracked = vim.g.who_called_tabline
+  if tracked then
+    return tracked .. " (tracked)"
+  end
 
-  return "custom"
+  -- 2. ハイライトグループ名から汎用的に推測
+  local ok, option_hook = pcall(require, "who-called.hooks.option")
+  if ok and option_hook.resolve_from_highlight_groups then
+    local from_hl = option_hook.resolve_from_highlight_groups(tabline)
+    if from_hl then
+      return from_hl
+    end
+  end
+
+  return nil
 end
 
 return M

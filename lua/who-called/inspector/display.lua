@@ -78,21 +78,19 @@ function M.create_display(win, buf)
 
   table.insert(info, "")
 
-  local statusline = vim.o.statusline
   table.insert(info, "Statusline:")
-  if statusline and statusline ~= "" then
-    local sl_plugin = gather.guess_statusline_plugin(statusline)
-    table.insert(info, string.format("   -> Plugin: %s", sl_plugin or "native"))
+  local sl_plugin = gather.get_statusline_plugin(win)
+  if sl_plugin then
+    table.insert(info, string.format("   -> Plugin: %s", sl_plugin))
   else
     table.insert(info, "   Using native statusline")
   end
 
-  local tabline = vim.o.tabline
   table.insert(info, "")
   table.insert(info, "Tabline:")
-  if tabline and tabline ~= "" then
-    local tl_plugin = gather.guess_tabline_plugin(tabline)
-    table.insert(info, string.format("   -> Plugin: %s", tl_plugin or "native"))
+  local tl_plugin = gather.get_tabline_plugin()
+  if tl_plugin then
+    table.insert(info, string.format("   -> Plugin: %s", tl_plugin))
   else
     local showtabline = vim.o.showtabline
     table.insert(info, string.format("   Using native tabline (showtabline=%d)", showtabline))
