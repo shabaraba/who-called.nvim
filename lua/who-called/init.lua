@@ -88,27 +88,4 @@ function M.clear_history()
   vim.notify("who-called history cleared", vim.log.levels.INFO)
 end
 
--- 履歴統計を表示
-function M.stats()
-  local total = history.count()
-  local notify_count = #history.get_by_type("notify")
-  local window_count = #history.get_by_type("window")
-  local diagnostic_count = #history.get_by_type("diagnostic")
-  local buffer_count = #history.get_by_type("buffer")
-  local option_count = #history.get_by_type("option")
-
-  vim.notify(
-    string.format(
-      "who-called stats: total=%d, notify=%d, window=%d, diagnostic=%d, buffer=%d, option=%d",
-      total,
-      notify_count,
-      window_count,
-      diagnostic_count,
-      buffer_count,
-      option_count
-    ),
-    vim.log.levels.INFO
-  )
-end
-
 return M
