@@ -66,6 +66,8 @@ end
 
 -- スクリーン座標からフローティングウィンドウを検出
 local function find_float_at_position(screenrow, screencol)
+  local candidates = {}
+
   for _, win in ipairs(vim.api.nvim_list_wins()) do
     local config = vim.api.nvim_win_get_config(win)
     if config.relative ~= "" then
@@ -92,11 +94,33 @@ local function find_float_at_position(screenrow, screencol)
       -- マウス位置がこのウィンドウ内か判定
       if screenrow >= row and screenrow < row + height and
          screencol >= col and screencol < col + width then
-        return win
+        local buf = vim.api.nvim_win_get_buf(win)
+        local ft = vim.bo[buf].filetype
+        local zindex = config.zindex or 50
+        table.insert(candidates, {
+          win = win,
+          ft = ft,
+          zindex = zindex,
+        })
       end
     end
   end
-  return nil
+
+  if #candidates == 0 then
+    return nil
+  end
+
+  -- filetype があるウィンドウを優先、なければ zindex が高いものを選択
+  table.sort(candidates, function(a, b)
+    local a_has_ft = (a.ft and a.ft ~= "") and 1 or 0
+    local b_has_ft = (b.ft and b.ft ~= "") and 1 or 0
+    if a_has_ft ~= b_has_ft then
+      return a_has_ft > b_has_ft
+    end
+    return a.zindex > b.zindex
+  end)
+
+  return candidates[1].win
 end
 
 -- マウス位置からUI要素を判定
@@ -441,11 +465,21 @@ local function format_hover_info(ui_info)
     if not plugin then
       local ft = vim.bo[buf].filetype
       if ft and ft ~= "" then
-        plugin = ft .. " (filetype)"
+        -- filetype からプラグイン名を抽出（Telescope*, notify 等）
+        local plugin_name = ft:match("^(%u%l+)") or ft
+        plugin = plugin_name .. " (ft:" .. ft .. ")"
       end
     end
 
-    -- 4. タイトルを取得
+    -- 4. bufname から推測（filetype が空の場合）
+    if not plugin then
+      local bufname = vim.api.nvim_buf_get_name(buf)
+      if bufname and bufname ~= "" then
+        plugin = vim.fn.fnamemodify(bufname, ":t") .. " (bufname)"
+      end
+    end
+
+    -- 5. タイトルを取得
     local config = ui_info.config
     local title_str = nil
     if config and config.title then
